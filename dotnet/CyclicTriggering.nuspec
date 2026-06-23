@@ -1,0 +1,42 @@
+<?xml version="1.0" encoding="utf-8"?>
+<package xmlns="http://schemas.microsoft.com/packaging/2012/06/nuspec.xsd">
+  <metadata>
+    <id>SmartStandards.CyclicTriggering</id>
+    <version>1.1.0</version>
+    <title>SmartStandards.CyclicTriggering</title>
+    <authors>SmartStandards</authors>
+    <owners>(public domain)</owners>
+    <copyright>SmartStandards</copyright>
+    <description>SmartStandards.CyclicTriggering</description>
+    <tags>UShell</tags>
+    <!-- https://spdx.org/licenses/ -->
+    <license type="expression">GPL-3.0-only</license>
+    <requireLicenseAcceptance>false</requireLicenseAcceptance>
+    <icon>PackageIcon.png</icon>
+    <projectUrl>https://github.com/SmartStandards/CyclicTriggering</projectUrl>
+    <dependencies>
+      <group targetFramework=".NETFramework4.8">
+      </group>
+      <group targetFramework="net8.0">
+      </group>
+      <group targetFramework="net10.0">
+      </group>
+    </dependencies>
+  </metadata>
+  <files>
+    <!-- https://docs.microsoft.com/en-us/nuget/create-packages/creating-a-package#from-a-convention-based-working-directory -->
+    <file src="PackageIcon.png" target="" />
+    <!-- .NET 4.8 -->
+    <file src="dist\bin-net48\SmartStandards.CyclicTriggering.dll" target="lib/net48" />
+    <file src="dist\bin-net48\SmartStandards.CyclicTriggering.xml" target="lib/net48" />
+    <file src="dist\bin-net48\SmartStandards.CyclicTriggering.pdb" target="lib/net48" />
+    <!-- .NET 8.0 -->
+    <file src="dist\bin-net8.0\SmartStandards.CyclicTriggering.dll" target="lib/net8.0" />
+    <file src="dist\bin-net8.0\SmartStandards.CyclicTriggering.xml" target="lib/net8.0" />
+    <file src="dist\bin-net8.0\SmartStandards.CyclicTriggering.pdb" target="lib/net8.0" />
+    <!-- .NET 10.0 -->
+    <file src="dist\bin-net10.0\SmartStandards.CyclicTriggering.dll" target="lib/net10.0" />
+    <file src="dist\bin-net10.0\SmartStandards.CyclicTriggering.xml" target="lib/net10.0" />
+    <file src="dist\bin-net10.0\SmartStandards.CyclicTriggering.pdb" target="lib/net10.0" />
+  </files>
+</package>
