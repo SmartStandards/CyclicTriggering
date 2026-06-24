@@ -43,12 +43,12 @@
     <!-- https://docs.microsoft.com/en-us/nuget/create-packages/creating-a-package#from-a-convention-based-working-directory -->
     <file src="PackageIcon.png" target="" />
     <!-- .NET 8.0 -->
-    <file src="dist\bin-net8.0\SmartStandards.CyclicTriggering.AspNetCore.dll" target="lib/net8.0" />
-    <file src="dist\bin-net8.0\SmartStandards.CyclicTriggering.AspNetCore.xml" target="lib/net8.0" />
-    <file src="dist\bin-net8.0\SmartStandards.CyclicTriggering.AspNetCore.pdb" target="lib/net8.0" />
+    <file src="dist\net8.0\SmartStandards.CyclicTriggering.AspNetCore.dll" target="lib/net8.0" />
+    <file src="dist\net8.0\SmartStandards.CyclicTriggering.AspNetCore.xml" target="lib/net8.0" />
+    <file src="dist\net8.0\SmartStandards.CyclicTriggering.AspNetCore.pdb" target="lib/net8.0" />
     <!-- .NET 10.0 -->
-    <file src="dist\bin-net10.0\SmartStandards.CyclicTriggering.AspNetCore.dll" target="lib/net10.0" />
-    <file src="dist\bin-net10.0\SmartStandards.CyclicTriggering.AspNetCore.xml" target="lib/net10.0" />
-    <file src="dist\bin-net10.0\SmartStandards.CyclicTriggering.AspNetCore.pdb" target="lib/net10.0" />
+    <file src="dist\net10.0\SmartStandards.CyclicTriggering.AspNetCore.dll" target="lib/net10.0" />
+    <file src="dist\net10.0\SmartStandards.CyclicTriggering.AspNetCore.xml" target="lib/net10.0" />
+    <file src="dist\net10.0\SmartStandards.CyclicTriggering.AspNetCore.pdb" target="lib/net10.0" />
   </files>
 </package>
