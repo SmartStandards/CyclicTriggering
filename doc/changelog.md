@@ -8,7 +8,13 @@ This files contains a version history including all changes relevant for semanti
 
 ## Upcoming Changes
 
-* initial commit
+*(none)*
+
+
+
+## v 0.1.0
+released **2026-06-24**, including:
+ - initial commit
 
 
 
