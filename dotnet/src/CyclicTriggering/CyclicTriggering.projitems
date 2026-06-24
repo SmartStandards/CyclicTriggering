@@ -9,8 +9,9 @@
     <Import_RootNamespace>System</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="$(MSBuildThisFileDirectory)[Contract]\ICyclicTriggerReceiver.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)[Contract]\ITriggerTargetRegistrar.cs" />
-    <Compile Include="$(MSBuildThisFileDirectory)[Convenience]\CyclicTriggeringService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CyclicTriggeringService.Setup.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ICyclicTriggerReceiver.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)ITriggerTargetRegistrar.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)CyclicTriggeringService.cs" />
   </ItemGroup>
 </Project>

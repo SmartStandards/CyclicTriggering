@@ -1,3 +1,4 @@
+using CyclicTriggering;
 using Logging.SmartStandards;
 using Logging.SmartStandards.AspSupport;
 using Microsoft.AspNetCore;
@@ -9,8 +10,8 @@ using Microsoft.Extensions.Hosting;
 using Microsoft.Extensions.Logging;
 using System;
 using System.Reflection;
+using System.Security.Cryptography;
 using System.Web.UJMW;
-using CyclicTriggering;
 
 namespace Demo {
 
@@ -32,6 +33,11 @@ namespace Demo {
 
       UjmwHostConfiguration.AuthHeaderEvaluator = (
         (string rawAuthHeader, Type contractType, MethodInfo targetContractMethod, string callingMachine, ref int httpReturnCode, ref string failedReason) => {
+         
+          if(contractType == typeof(ICyclicTriggerReceiver)) {
+            return true;
+          }
+
           //in this demo - any auth header is ok - but there must be one ;-)
           if (string.IsNullOrWhiteSpace(rawAuthHeader)) {
             httpReturnCode = 403;
@@ -50,25 +56,80 @@ namespace Demo {
 
         r.AddTriggerTarget(
            (CancellationToken c) => {
-
-
-            DevLogger.LogTrace("Trigger received - executing target 1");
-
-          },
-           AspSpecialTrigger.OnEachRequest
+             int tid = Thread.CurrentThread.ManagedThreadId;
+             DevLogger.LogDebug($"  [#{tid}]  TRIGGERRED 'Foo-Job' by Regular GO (async #{tid})");
+             DevLogger.LogDebug($"  [#{tid}]  BU: {AspWorkerBasedCyclicTriggeringService.GetCurrentRequestUrl()}");
+             Thread.Sleep(2500); //<< takes longer than the minWaitSeconds of 2 seconds ;-)
+             DevLogger.LogDebug($"  [#{tid}]  'Foo-Job' ENDING...");
+           },
+           minWaitSeconds: 4,
+           rescheduleWhileExecuting: true
         );
 
-        r.EnableTriggeringEndpoint();
-        r.EnableInternalSelftrigger(20);
-        r.EnableLoopbackSelftrigger(20)
+        //  r.AddTriggerTarget(
+        //   (CancellationToken c) => {
+        //     int tid = Thread.CurrentThread.ManagedThreadId;
+        //     DevLogger.LogDebug($"  [#{tid}]  TRIGGERRED 'Bar-Job' by Regular GO (async #{tid})");
+        //     Thread.Sleep(6000); //<< takes longer than the minWaitSeconds of 2 seconds ;-)
+        //     DevLogger.LogDebug($"  [#{tid}]  'Bar-Job' ENDING...");
+        //   },
+        //   minWaitSeconds: 4,
+        //   rescheduleWhileExecuting: true
+        //);
 
-        r.AddTriggerTarget()
+        //register UJMW-Endpoint (POST on .well-known/cyclic-trigger/go)
+        //r.EnableTriggeringEndpoint();
+
+        //use any incomming request (to any endpoint) as trigger (no UJMW-Endpoint required)
+        //r.EnableTriggerOnAnyEnpoint();
+
+        //self-keep-alive: call the UJMW-Endpoint (start now)
+        //r.EnableLoopbackSelftrigger(2,  //only possible if we know our public url...
+        //  startSelfInitiatedOverThisUrl: "http://localhost:55202/.well-known/cyclic-trigger/go"
+        //);
+
+        //self-keep-alive: call the UJMW-Endpoint (starts after at least one external call)
+        //r.EnableLoopbackSelftrigger(2);
+
+        //self-trigger without keep-alive (no http-layer - just a background-thread)
+        //r.EnableInternalSelftrigger(2);
+
+        #region " playing with 'SpecialTrigger' events (only available for ASP) "
+
+        //  r.AddTriggerTargetForAspEvent(
+        //    (CancellationToken c) => {
+        //      int tid = Thread.CurrentThread.ManagedThreadId;
+        //      DevLogger.LogDebug($"  [#{tid}]  TRIGGERRED by OnApplicationReady (synchronously)");
+        //    },
+        //    AspSpecialTrigger.OnApplicationReady
+        //  );
+
+        //  r.AddTriggerTargetForAspEvent(
+        //    (CancellationToken c) => {
+        //      int tid = Thread.CurrentThread.ManagedThreadId;
+        //      DevLogger.LogDebug($"  [#{tid}]  TRIGGERRED by OnEachRequest (synchronously)");
+        //    },
+        //    AspSpecialTrigger.OnEachRequest
+        //  );
+
+        //  r.AddTriggerTargetForAspEvent(
+        //    (CancellationToken c) => {
+        //      int tid = Thread.CurrentThread.ManagedThreadId;
+        //      DevLogger.LogDebug($"  [#{tid}]  TRIGGERRED by OnApplicationStopping (synchronously)");
+        //    },
+        //    AspSpecialTrigger.OnApplicationStopping
+        //  );
+
+        #endregion
 
       });
 
       //////////////////////////////////////////////////////////////////////////////////////////
 
       services.AddSwaggerGenSmartStandardsFlavored();
+
+      int tid = Thread.CurrentThread.ManagedThreadId;
+      DevLogger.LogDebug($"  [#{tid}]  OnConfigureServices COMPLETED!");
     }
 
     static partial void OnRunApplication(
@@ -89,8 +150,6 @@ namespace Demo {
 
       app.UseHttpsRedirection();
 
-
-
       app.UseRouting();
 
       //CORS: muss zwischen 'UseRouting' und 'UseEndpoints' liegen!
@@ -103,6 +162,8 @@ namespace Demo {
         endpoints.MapControllers();
       });
 
+      int tid = Thread.CurrentThread.ManagedThreadId;
+      DevLogger.LogDebug($"  [#{tid}]  OnRunApplication COMPLETED!");
     }
 
   }

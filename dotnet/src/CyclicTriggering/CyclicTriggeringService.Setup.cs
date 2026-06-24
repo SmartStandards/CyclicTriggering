@@ -8,55 +8,12 @@ using System.Threading.Tasks;
 
 namespace CyclicTriggering {
 
-  public class CyclicTriggeringService : ICyclicTriggerReceiver, ITriggerTargetRegistrar {
+  public partial class CyclicTriggeringService : ITriggerTargetRegistrar {
 
-    //NOTE: complete implementation is static, because some runtimes (like WCF)
-    //might create multiple instances of this class, but the framework is designed
-    //to control the trigger execution globally across all instances!
+    protected bool _InternalSelftriggerEnabled = false;
+    protected bool _LoopbackSelftriggerEnabled = false;
 
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private static CancellationTokenSource _InternalCancellationTokenSource;
-
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private static CancellationToken _CancellationToken;
-
-    [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-    private static List<TriggerTargetInfo> _RegisteredTriggerTargets = new List<TriggerTargetInfo>();
-
-    static CyclicTriggeringService() {
-      _InternalCancellationTokenSource = new CancellationTokenSource();
-      _CancellationToken = _InternalCancellationTokenSource.Token;
-    }
-
-    public CyclicTriggeringService() {
-    }
-
-    [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-    private TriggerTargetInfo[] CurrentTargets { 
-      get {
-        lock (_RegisteredTriggerTargets) {
-          return _RegisteredTriggerTargets.ToArray();
-        }
-      }
-    }
-
-    /// <summary>
-    /// Used to bind the internal threads to a root application lifetime
-    /// </summary>
-    public CancellationToken GlobalRuntimeCancellationToken {
-      get {
-        return _CancellationToken;
-      }
-      set {
-        _CancellationToken = CancellationTokenSource.CreateLinkedTokenSource(
-          _InternalCancellationTokenSource.Token, value
-        ).Token;
-      }
-    }
-
-    public void Shutdown() {
-      _InternalCancellationTokenSource.Cancel();
-    }
+    private string _StartedImmediatelyOverThisUrl = null;
 
     #region " Convenience overload "
 
@@ -86,10 +43,10 @@ namespace CyclicTriggering {
     /// </param>
     public void AddTriggerTarget(
       Action<CancellationToken> target, int minWaitSeconds = 5, bool rescheduleWhileExecting = true,
-      CyclicTriggeringService.OnExceptionOccoured onExceptionOccoured = null
+      OnExceptionOccoured onExceptionOccoured = null
     ) {
       this.AddTriggerTarget(
-        (ct) => new Task(() => target(ct),ct),
+        (ct) => new Task(() => target(ct), ct),
         minWaitSeconds, rescheduleWhileExecting, onExceptionOccoured, 0
       );
     }
@@ -136,137 +93,13 @@ namespace CyclicTriggering {
           new TriggerTargetInfo() {
             Target = taskFactory,
             MinWaitSeconds = minWaitSeconds,
-            RescheduleWhileExecuting = rescheduleWhileExecting,
+            ShouldRescheduleWhileExecuting = rescheduleWhileExecting,
             OnExceptionOccoured = onExceptionOccoured,
             EventScope = eventScope
           }
         );
       }
     }
-
-    /// <summary> 
-    ///  A callback which will be called when an exception occours during the execution of the target.
-    ///  This will give you the opportunity to implement a custom retry logic by modifying the suspendUntilUtc
-    ///  parameter based on the exception and the number of times this exception has already occoured.
-    /// </summary>
-    /// <param name="ex">The Exception which occoured during the exectution</param>
-    /// <param name="exCounter">The Exception-Counter (how many times this occoured)</param>
-    /// <param name="suspendUntilUtc">A pre-calculated DateTime(utc), which is a recommendation based on the Exception-Counter</param>
-    public delegate void OnExceptionOccoured(Exception ex,int exCounter, ref DateTime suspendUntilUtc);
-
-    private static void TriggerTarget(TriggerTargetInfo targetInfo, int eventScope) {
-
-      if (targetInfo.EventScope != eventScope || targetInfo.NextExecutionNbf < DateTime.UtcNow) {
-        return;
-      }
-        
-      if (targetInfo.CurrentExecutionTask == null || targetInfo.CurrentExecutionTask.IsCompleted) {
-
-          // Start a new execution
-          targetInfo.NextExecutionNbf = DateTime.UtcNow.AddSeconds(targetInfo.MinWaitSeconds);
-
-          targetInfo.CurrentExecutionTask = targetInfo.Target(_CancellationToken);
-
-          if(targetInfo.CurrentExecutionTask == null) {
-            return;
-          }
-
-          if(targetInfo.CurrentExecutionTask.Status == TaskStatus.Created) {
-            targetInfo.CurrentExecutionTask.Start();
-          }
-
-          //reset
-          targetInfo.RescheduleRequestedWhileExecuting = false;
-
-          targetInfo.CurrentExecutionTask.ContinueWith((t) => {
-            if (!t.IsFaulted) {
-              targetInfo.LastEx = null;
-              targetInfo.ExCount = 0;
-            }
-            else { 
-              Exception ex = t.Exception;
-
-              targetInfo.LastEx = ex;
-              targetInfo.ExCount++;
-
-              DateTime nextTry = DateTime.UtcNow.AddSeconds(
-                targetInfo.MinWaitSeconds + ((targetInfo.ExCount - 1) * targetInfo.ExCount)
-              //  +0*1 +1*2 +2*3 +3*4 +4*5 +5*6 +6*7 +7*8 +8*9 +9*10
-              //  = 0s, 7s, 22s, 52s, 102s, 202s, 382s, 722s, 1422s, 2822s
-              );
-
-              if (targetInfo.OnExceptionOccoured != null) {
-                targetInfo.OnExceptionOccoured(ex, targetInfo.ExCount, ref nextTry);
-              }
-              targetInfo.NextExecutionNbf = nextTry;
-              if (nextTry < DateTime.UtcNow) {
-                targetInfo.RescheduleRequestedWhileExecuting = true;
-              }
-            }
-          }, _CancellationToken);
-      
-      } else if (targetInfo.RescheduleWhileExecuting) {
-        // Mark for rescheduling after current execution finishes
-        targetInfo.RescheduleRequestedWhileExecuting = true;   
-      }
-    }
-
-    public void Go() {
-      this.Go(0); //0=regular trigger
-    }
-
-    protected void Go(int eventscope) {
-      lock (_RegisteredTriggerTargets) {
-        TriggerTargetInfo[] currentTargets = _RegisteredTriggerTargets.ToArray();
-
-        foreach (TriggerTargetInfo targetInfo in currentTargets) {
-          TriggerTarget(targetInfo, eventscope);
-        }
-
-      }
-    }
-
-    protected virtual string GetRetriggerUrl() {
-#if NET_FX
-      System.Web.HttpRequest req = System.Web.HttpContext.Current?.Request;
-      if(req != null) {
-        if (req.Url.AbsoluteUri.EndsWith("/go")) {
-          return req.Url.AbsoluteUri;
-        }
-        return null; //wrong endpoint!
-      }
-      else if (_StartedImmediatelyOverThisUrl != null) {
-        return _StartedImmediatelyOverThisUrl;
-      }
-      else {
-        throw new InvalidOperationException("Could not determine the retrigger-url, because there is no http-request-context available. Please provide a concrete url to 'EnableLoopbackSelftrigger' or use 'EnableInternalSelftrigger' (non-http-based) instead.");
-      }
-#endif
-      throw new NotImplementedException("Could not determine the retrigger-url, because youre using the vanilla implementation of this service. If youre running ASP.NET Core WebApi, you can use the more specialized one - otherwise youll need to provide a concrete url to 'EnableLoopbackSelftrigger' or use 'EnableInternalSelftrigger' (non-http-based) instead.");
-    }
-
-    protected void SendSelftriggerHttpCall(string url) {
-      try {
-        using (var client = new System.Net.Http.HttpClient()) {
-          client.Timeout = TimeSpan.FromSeconds(5);
-          client.PostAsync(
-            url, 
-            new System.Net.Http.StringContent("{ }",
-            System.Text.Encoding.UTF8,
-            "application/json")
-          ).GetAwaiter().GetResult();
-        }
-      }
-      catch (Exception ex) {
-        //InsLogger.LogWarning(ex);
-      }
-    }
-
-    protected virtual bool IsApplicationReadyForLoopbackSelftrigger() {
-      return true; //just a special hook for asp.net core...
-    }
-
-    private string _StartedImmediatelyOverThisUrl = null;
 
     /// <summary>
     /// Activates an internal self-triggering mechanism that will periodically send an http-request to trigger the registered targets
@@ -278,12 +111,17 @@ namespace CyclicTriggering {
     ///  After the first trigger was received, this delay will be used to send the next trigger-request...
     /// </param>
     /// <param name="startSelfInitiatedOverThisUrl">
-    ///  If this parameter is set, the first http-trigger call will be sent to the given url 3sec after this method is called (if the application ist ready at this time), 
+    ///  If this parameter is set, the first http-trigger call will be sent to the given url
+    ///  3sec after this method is called (if the application ist ready at this time), 
     ///  instead of waiting for the first incomming real request from a external participant. 
     ///  This is useful to ensure a direct start of the self-triggering mechanism,
     ///  but you'll need to know your own public url of the service to be able to set this parameter correctly (not easy under webservers like IIS). 
     /// </param>
     public void EnableLoopbackSelftrigger(int retriggerIntervalSec = 10, string startSelfInitiatedOverThisUrl = null) {
+      if (_LoopbackSelftriggerEnabled) {
+        throw new InvalidOperationException(nameof(EnableLoopbackSelftrigger) + " was already called!");
+      }
+      _LoopbackSelftriggerEnabled = true;
       _StartedImmediatelyOverThisUrl = startSelfInitiatedOverThisUrl;
       if (retriggerIntervalSec < 2) {
         retriggerIntervalSec = 1;
@@ -302,28 +140,42 @@ namespace CyclicTriggering {
           string retriggerUrl = this.GetRetriggerUrl();
 
           //were sill not part of a regular incomming 'go'-request!!!
-          if(retriggerUrl == null) {
-            return null; 
+          if (retriggerUrl == null) {
+            return null;
           }
 
           return new Task(() => { //the task itself
-            Task.Delay((retriggerIntervalSec * 1000) + 100, ct).Wait(ct);
-            while (!this.IsApplicationReadyForLoopbackSelftrigger() && !ct.IsCancellationRequested && !_CancellationToken.IsCancellationRequested) {
-              Thread.Sleep(500);
-            }
+
+            Task.Delay((retriggerIntervalSec * 1000), ct).Wait(ct);
+
             if (!ct.IsCancellationRequested && !_CancellationToken.IsCancellationRequested) {
-              this.SendSelftriggerHttpCall(retriggerUrl);
+
+              Task.Run(() => {
+                //very important: we need to run this in a separate thread, because the current thread
+                //needs to have ended before the retriggering http-call is sent, otherwise the
+                //retriggering will not start ourself again!
+                Thread.Sleep(500);
+
+                if (!ct.IsCancellationRequested && !_CancellationToken.IsCancellationRequested) { 
+                  this.SendSelftriggerHttpCall(retriggerUrl);
+                }
+
+              });
+
             }
           }, ct);
 
         },
         minWaitSeconds: retriggerIntervalSec,
-        rescheduleWhileExecting: true
+        rescheduleWhileExecting: false //we alyways wand to be executed within the request-lifecycle!
       );
 
-      if(!string.IsNullOrWhiteSpace(startSelfInitiatedOverThisUrl)) {
+      if (!string.IsNullOrWhiteSpace(startSelfInitiatedOverThisUrl)) {
         Task.Run(() => {
-          Task.Delay(3000, _CancellationToken).Wait(_CancellationToken);
+          Task.Delay(3000, this.GlobalRuntimeCancellationToken).Wait(this.GlobalRuntimeCancellationToken);
+          while (!this.IsApplicationReadyForLoopbackSelftrigger() && !this.GlobalRuntimeCancellationToken.IsCancellationRequested) {
+            Thread.Sleep(500);
+          }
           this.SendSelftriggerHttpCall(startSelfInitiatedOverThisUrl);
         }, _CancellationToken);
       }
@@ -339,6 +191,10 @@ namespace CyclicTriggering {
     ///  After the first trigger was received, this delay will be used to send the next trigger...
     /// </param>
     public void EnableInternalSelftrigger(int retriggerIntervalSec = 10) {
+      if (_InternalSelftriggerEnabled) {
+        throw new InvalidOperationException(nameof(EnableInternalSelftrigger) + " was already called!");
+      }
+      _InternalSelftriggerEnabled = true;
       if (retriggerIntervalSec < 2) {
         retriggerIntervalSec = 1;
       }
@@ -350,15 +206,29 @@ namespace CyclicTriggering {
         (ct) => { //the factory
 
           return new Task(() => { //the task itself
-            Task.Delay((retriggerIntervalSec * 1000) + 100, ct).Wait(ct);
+
+            Task.Delay((retriggerIntervalSec * 1000), ct).Wait(ct);
+
             if (!ct.IsCancellationRequested && !_CancellationToken.IsCancellationRequested) {
-              this.Go();
+
+              Task.Run(() => {
+                //very important: we need to run this in a separate thread, because the current thread
+                //needs to have ended before the retriggering http-call is sent, otherwise the
+                //retriggering will not start ourself again!
+                Thread.Sleep(500);
+
+                if (!ct.IsCancellationRequested && !_CancellationToken.IsCancellationRequested) {
+                  this.Go();
+                }
+
+              });
+
             }
           }, ct);
 
         },
         minWaitSeconds: retriggerIntervalSec,
-        rescheduleWhileExecting: true
+        rescheduleWhileExecting: false
       );
 
       Task.Run(() => {
@@ -372,17 +242,17 @@ namespace CyclicTriggering {
 
       public Func<CancellationToken, Task> Target { get; set; }
       public int MinWaitSeconds { get; set; }
-      public bool RescheduleWhileExecuting { get; set; }
+      public bool ShouldRescheduleWhileExecuting { get; set; }
       public DateTime NextExecutionNbf { get; set; } = DateTime.MinValue;
       public Task CurrentExecutionTask { get; set; } = null;
-      public bool RescheduleRequestedWhileExecuting { get; set; } = false;
+      public bool RescheduleRequested { get; set; } = false;
       public int ExCount { get; set; } = 0;
       public Exception LastEx { get; set; } = null;
 
-    #region " Debugger "
+      #region " Debugger "
 
       [DebuggerBrowsable(DebuggerBrowsableState.Never)]
-      public string DisplayName { 
+      public string DisplayName {
         get {
           if (Target == null) {
             return "NULL-Target";
@@ -406,7 +276,7 @@ namespace CyclicTriggering {
               return "idle";
             }
           }
-          else if(this.RescheduleRequestedWhileExecuting) {
+          else if (this.RescheduleRequested) {
             return "running (+rescheduled)";
           }
           else {

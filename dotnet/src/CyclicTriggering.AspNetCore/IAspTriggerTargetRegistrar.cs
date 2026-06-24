@@ -1,10 +1,4 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Diagnostics;
-using System.Reflection;
-using System.Runtime.CompilerServices;
-using System.Threading;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Http;
 
 namespace CyclicTriggering {
 
@@ -19,8 +13,10 @@ namespace CyclicTriggering {
     /// <param name="endpointRoute">
     /// <see href="https://github.com/SmartStandards/.well-known.cyclic-trigger?utm_source=chatgpt.com">.well-known/cyclic-trigger</see>
     /// </param>
+    /// <param name="anonymousAccessAllowed"></param> 
     void EnableTriggeringEndpoint(
-      string endpointRoute = ".well-known/cyclic-trigger"
+      string endpointRoute = ".well-known/cyclic-trigger",
+      bool anonymousAccessAllowed = true
     );
 
     /// <summary>
@@ -29,12 +25,14 @@ namespace CyclicTriggering {
     /// </summary>
     void EnableTriggerOnAnyEnpoint();
 
+    void EnableAmbientHttpInfoProvider();
+
     /// <summary>
     /// Registers a trigger target to be executed when a special trigger-event occurs.
     /// </summary>
     /// <param name="target">
-    ///  A really (short running) method that will be invoked each time.
-    ///  NOTE: the given method will be invoked SYNCHRONOUSLY, so it MUST NOT be long running!
+    ///  A REALLY SHORT RUNNING method that will be invoked each time.
+    ///  NOTE: the given method will be invoked SYNCHRONOUSLY, so it WILL BLOCK THE APPLICATION!
     /// </param>
     /// <param name="aspSpecialTrigger">
     ///   A well-known asp event to be used to trigger a given target.
@@ -42,7 +40,7 @@ namespace CyclicTriggering {
     /// <param name="minWaitSeconds">
     ///  During this period any re-triggering will be ignored
     /// </param> 
-    void AddTriggerTarget(
+    void AddTriggerTargetForAspEvent(
       Action<CancellationToken> target, AspSpecialTrigger aspSpecialTrigger, int minWaitSeconds = 0
     );
 

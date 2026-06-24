@@ -15,6 +15,18 @@
     <icon>PackageIcon.png</icon>
     <projectUrl>https://github.com/SmartStandards/CyclicTriggering</projectUrl>
     <dependencies>
+      <!-- (configuration for the Versioning-Util, which is not part of the xml-schema, because it's a pre-processor)
+      "KVU": { 
+        "dependencySync": {
+          "addMissing":true, "updateExisting":true, "allowDowngrades":true, "removeOrphaned":false,
+          "constraintLevel":"SEM-SAFE",
+          "sources": [ 
+            { "origin":"src\\CyclicTriggering.net8.0\\CyclicTriggering.net8.0.csproj", "targetFramework":".NETFramework4.8" },
+            { "origin":"src\\CyclicTriggering.net8.0\\CyclicTriggering.net8.0.csproj", "targetFramework":"=" },
+            { "origin":"src\\CyclicTriggering.net10.0\\CyclicTriggering.net10.0.csproj", "targetFramework":"=" }
+          ]
+        }
+      } -->     
       <group targetFramework=".NETFramework4.8">
       </group>
       <group targetFramework="net8.0">

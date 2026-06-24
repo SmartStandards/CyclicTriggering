@@ -15,6 +15,20 @@
     <icon>PackageIcon.png</icon>
     <projectUrl>https://github.com/SmartStandards/CyclicTriggering</projectUrl>
     <dependencies>
+      <!-- (configuration for the Versioning-Util, which is not part of the xml-schema, because it's a pre-processor)
+      "KVU": { 
+        "versioningTwins":[ /* forced same [version] as our package and never treated as orphaned */
+          "SmartStandards.CyclicTriggering"
+        ],
+        "dependencySync": {
+          "addMissing":true, "updateExisting":true, "allowDowngrades":true, "removeOrphaned":false,
+          "constraintLevel":"SEM-SAFE",
+          "sources": [         
+            { "origin":"src\\CyclicTriggering.AspNetCore.net8.0\\CyclicTriggering.AspNetCore.net8.0.csproj", "targetFramework":"=" },
+            { "origin":"src\\CyclicTriggering.AspNetCore.net10.0\\CyclicTriggering.AspNetCore.net10.0.csproj", "targetFramework":"=" }
+          ]
+        }
+      } -->
       <group targetFramework="net8.0">
         <dependency id="SmartStandards.CyclicTriggering" version="[1.1.0]" />
         <dependency id="UJMW.DynamicController" version="5.5.1" />

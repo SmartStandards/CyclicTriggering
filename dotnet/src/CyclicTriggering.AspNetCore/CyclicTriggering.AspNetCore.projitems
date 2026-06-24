@@ -9,8 +9,11 @@
     <Import_RootNamespace>UShell.ServerCommands</Import_RootNamespace>
   </PropertyGroup>
   <ItemGroup>
+    <Compile Include="$(MSBuildThisFileDirectory)AspWorkerBasedCyclicTriggeringService.IHostedService.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)AspWorkerBasedCyclicTriggeringService.cs" />
+    <Compile Include="$(MSBuildThisFileDirectory)AspWorkerBasedCyclicTriggeringService.IStartupFilter.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)CyclicTriggeringSetupExtensions.cs" />
+    <Compile Include="..\CyclicTriggering.AspNetCore\IAmbientHttpInfoProvider.cs" />
     <Compile Include="$(MSBuildThisFileDirectory)IAspTriggerTargetRegistrar.cs" />
   </ItemGroup>
 </Project>
