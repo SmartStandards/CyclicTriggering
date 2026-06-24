@@ -62,7 +62,7 @@ namespace Demo {
              Thread.Sleep(2500); //<< takes longer than the minWaitSeconds of 2 seconds ;-)
              DevLogger.LogDebug($"  [#{tid}]  'Foo-Job' ENDING...");
            },
-           minWaitSeconds: 4,
+           minWaitSeconds: 2,
            rescheduleWhileExecuting: true
         );
 
@@ -78,7 +78,7 @@ namespace Demo {
         //);
 
         //register UJMW-Endpoint (POST on .well-known/cyclic-trigger/go)
-        //r.EnableTriggeringEndpoint();
+        r.EnableTriggeringEndpoint();
 
         //use any incomming request (to any endpoint) as trigger (no UJMW-Endpoint required)
         //r.EnableTriggerOnAnyEnpoint();
@@ -93,6 +93,8 @@ namespace Demo {
 
         //self-trigger without keep-alive (no http-layer - just a background-thread)
         //r.EnableInternalSelftrigger(2);
+
+        r.EnableAmbientHttpInfoProvider();
 
         #region " playing with 'SpecialTrigger' events (only available for ASP) "
 
