@@ -211,17 +211,19 @@ namespace CyclicTriggering {
 
             if (!ct.IsCancellationRequested && !_CancellationToken.IsCancellationRequested) {
 
-              Task.Run(() => {
-                //very important: we need to run this in a separate thread, because the current thread
-                //needs to have ended before the retriggering http-call is sent, otherwise the
-                //retriggering will not start ourself again!
-                Thread.Sleep(500);
+              using (ExecutionContext.SuppressFlow()) {              
+                Task.Run(() => {
+                  //very important: we need to run this in a separate thread, because the current thread
+                  //needs to have ended before the retriggering http-call is sent, otherwise the
+                  //retriggering will not start ourself again!
+                  Thread.Sleep(500);
 
-                if (!ct.IsCancellationRequested && !_CancellationToken.IsCancellationRequested) {
-                  this.Go();
-                }
+                  if (!ct.IsCancellationRequested && !_CancellationToken.IsCancellationRequested) {
+                    this.Go();
+                  }
 
-              });
+                });
+              }
 
             }
           }, ct);

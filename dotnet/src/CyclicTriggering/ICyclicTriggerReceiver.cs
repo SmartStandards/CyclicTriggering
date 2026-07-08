@@ -2,6 +2,7 @@
 using System.Diagnostics.Contracts;
 #if NET_FX
 using System.ServiceModel;
+using System.ServiceModel.Web;
 #endif
 
 namespace CyclicTriggering {
@@ -12,7 +13,8 @@ namespace CyclicTriggering {
   public interface ICyclicTriggerReceiver {
 
 #if NET_FX
-  [OperationContract(Action="go", Name="go")]
+  [OperationContract()]
+  [WebInvoke(Method = "POST", UriTemplate = "go")]
 #endif
     [DisplayName("go")] //UJMW will use this for the URL!
     void Go();

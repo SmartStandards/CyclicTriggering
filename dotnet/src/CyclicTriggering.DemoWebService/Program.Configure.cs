@@ -59,11 +59,11 @@ namespace Demo {
              int tid = Thread.CurrentThread.ManagedThreadId;
              DevLogger.LogDebug($"  [#{tid}]  TRIGGERRED 'Foo-Job' by Regular GO (async #{tid})");
              DevLogger.LogDebug($"  [#{tid}]  BU: {AspWorkerBasedCyclicTriggeringService.GetCurrentRequestUrl()}");
-             Thread.Sleep(2500); //<< takes longer than the minWaitSeconds of 2 seconds ;-)
+             Thread.Sleep(3000); //<< takes longer than the minWaitSeconds of 2 seconds ;-)
              DevLogger.LogDebug($"  [#{tid}]  'Foo-Job' ENDING...");
            },
            minWaitSeconds: 2,
-           rescheduleWhileExecuting: true
+           rescheduleWhileExecuting: false
         );
 
         //  r.AddTriggerTarget(
@@ -98,29 +98,32 @@ namespace Demo {
 
         #region " playing with 'SpecialTrigger' events (only available for ASP) "
 
-        //  r.AddTriggerTargetForAspEvent(
-        //    (CancellationToken c) => {
-        //      int tid = Thread.CurrentThread.ManagedThreadId;
-        //      DevLogger.LogDebug($"  [#{tid}]  TRIGGERRED by OnApplicationReady (synchronously)");
-        //    },
-        //    AspSpecialTrigger.OnApplicationReady
-        //  );
+        //r.AddTriggerTargetForAspEvent(
+        //  (CancellationToken c) => {
+        //    int tid = Thread.CurrentThread.ManagedThreadId;
+        //    DevLogger.LogDebug($"  [#{tid}]  TRIGGERRED by OnApplicationReady (synchronously)");
+        //    DevLogger.LogDebug($"  [#{tid}]  BU: {AspWorkerBasedCyclicTriggeringService.GetCurrentRequestUrl()}");
+        //  },
+        //  AspSpecialTrigger.OnApplicationReady
+        //);
 
-        //  r.AddTriggerTargetForAspEvent(
-        //    (CancellationToken c) => {
-        //      int tid = Thread.CurrentThread.ManagedThreadId;
-        //      DevLogger.LogDebug($"  [#{tid}]  TRIGGERRED by OnEachRequest (synchronously)");
-        //    },
-        //    AspSpecialTrigger.OnEachRequest
-        //  );
+        //r.AddTriggerTargetForAspEvent(
+        //  (CancellationToken c) => {
+        //    int tid = Thread.CurrentThread.ManagedThreadId;
+        //    DevLogger.LogDebug($"  [#{tid}]  TRIGGERRED by OnEachRequest (synchronously)");
+        //    DevLogger.LogDebug($"  [#{tid}]  BU: {AspWorkerBasedCyclicTriggeringService.GetCurrentRequestUrl()}");
+        //  },
+        //  AspSpecialTrigger.OnEachRequest
+        //);
 
-        //  r.AddTriggerTargetForAspEvent(
-        //    (CancellationToken c) => {
-        //      int tid = Thread.CurrentThread.ManagedThreadId;
-        //      DevLogger.LogDebug($"  [#{tid}]  TRIGGERRED by OnApplicationStopping (synchronously)");
-        //    },
-        //    AspSpecialTrigger.OnApplicationStopping
-        //  );
+        //r.AddTriggerTargetForAspEvent(
+        //  (CancellationToken c) => {
+        //    int tid = Thread.CurrentThread.ManagedThreadId;
+        //    DevLogger.LogDebug($"  [#{tid}]  TRIGGERRED by OnApplicationStopping (synchronously)");
+        //    DevLogger.LogDebug($"  [#{tid}]  BU: {AspWorkerBasedCyclicTriggeringService.GetCurrentRequestUrl()}");
+        //  },
+        //  AspSpecialTrigger.OnApplicationStopping
+        //);
 
         #endregion
 

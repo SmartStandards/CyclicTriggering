@@ -8,7 +8,8 @@ This files contains a version history including all changes relevant for semanti
 
 ## Upcoming Changes
 
-*(none)*
+Fix: SuppressFlow gehen unendlichen async-stack beim internen self-trigger
+Fix: Wcf-Attribute am 'ICyclicTriggerReceiver' fuer kleingeschiebenes 'go'
 
 
 
