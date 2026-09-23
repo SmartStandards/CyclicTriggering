@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Logging.SmartStandards.CopyForCyclicTriggering;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Net;
@@ -34,7 +35,7 @@ namespace CyclicTriggering {
     }
 
     [DebuggerBrowsable(DebuggerBrowsableState.RootHidden)]
-    private TriggerTargetInfo[] CurrentTargets { 
+    private TriggerTargetInfo[] CurrentTargets {
       get {
         lock (_RegisteredTriggerTargets) {
           return _RegisteredTriggerTargets.ToArray();
@@ -57,6 +58,7 @@ namespace CyclicTriggering {
     }
 
     public void Shutdown() {
+      DevLogger.LogInformation(2096709435903705733L, 75199, $"{nameof(CyclicTriggeringService)} got {nameof(Shutdown)}-Method invoked!");
       _InternalCancellationTokenSource.Cancel();
     }
 
@@ -85,18 +87,26 @@ namespace CyclicTriggering {
 
           //we need to wait, but there is no active job which can reschedule the target,
           //so we need to start only the rescheduling portiaon
-          if (targetInfo.CurrentExecutionTask == null || targetInfo.CurrentExecutionTask.IsCompleted) {
+          if (targetInfo.CurrentExecutionTask == null || targetInfo.CurrentExecutionTask.IsCompleted || targetInfo.CurrentExecutionTask.IsFaulted) {
             //using (ExecutionContext.SuppressFlow()) {
-              targetInfo.CurrentExecutionTask = Task.Run(
-                () => WaitForNextAllowedExecutionTimeAndRescheduleIfRequired(targetInfo, eventScope)
-              );
+            targetInfo.CurrentExecutionTask = Task.Run(
+              () => WaitForNextAllowedExecutionTimeAndRescheduleIfRequired(targetInfo, eventScope)
+            );
             //}
           }
         }
+
         return;
       }
+      
+      if (targetInfo.CurrentExecutionTask != null && !targetInfo.CurrentExecutionTask.IsCompleted && !targetInfo.CurrentExecutionTask.IsFaulted) {
 
-      if (targetInfo.CurrentExecutionTask != null && !targetInfo.CurrentExecutionTask.IsCompleted) {
+        //may be were withn the gap, between NextExecutionNbf has been over, but task is still running?
+        if (targetInfo.ShouldRescheduleWhileExecuting) {
+          targetInfo.RescheduleRequested = true;
+        }
+
+        //DevLogger.LogDebug(2096712632310652713L, 75195, $"{nameof(CyclicTriggeringService)} will skip TriggerTarget for '{targetInfo.DisplayName}'!");
         return;
       }
 
@@ -105,7 +115,8 @@ namespace CyclicTriggering {
 
       targetInfo.CurrentExecutionTask = targetInfo.Target(_CancellationToken);
 
-      if(targetInfo.CurrentExecutionTask == null) {
+      if (targetInfo.CurrentExecutionTask == null) {
+        DevLogger.LogTrace(2096712656283896121L, 75194, $"{nameof(CyclicTriggeringService)} got null-Task from factory for '{targetInfo.DisplayName}'!");
         return;
       }
 
@@ -121,7 +132,7 @@ namespace CyclicTriggering {
           targetInfo.LastEx = null;
           targetInfo.ExCount = 0;
         }
-        else { 
+        else {
           Exception ex = t.Exception;
           targetInfo.LastEx = ex;
           targetInfo.ExCount++;
@@ -154,14 +165,23 @@ namespace CyclicTriggering {
     }
 
     protected void Go(int specialEventChannel) {
+
+      DevLogger.LogTrace(2096709435903705734L, 75100, $"{nameof(CyclicTriggeringService)} got trigger 'Go'.");
+
       lock (_RegisteredTriggerTargets) {
         TriggerTargetInfo[] currentTargets = _RegisteredTriggerTargets.ToArray();
 
         foreach (TriggerTargetInfo targetInfo in currentTargets) {
-          TriggerTarget(targetInfo, specialEventChannel);
+          try {
+            TriggerTarget(targetInfo, specialEventChannel);
+          }
+          catch (Exception ex) {
+            DevLogger.LogError(ex);
+          }
         }
 
       }
+
     }
     protected virtual bool IsApplicationReadyForLoopbackSelftrigger() {
       return true; //just a special hook for asp.net core...
@@ -182,36 +202,70 @@ namespace CyclicTriggering {
 #else
       throw new NotImplementedException("Could not determine the retrigger-url, because youre using the vanilla implementation of this service. If youre running ASP.NET Core WebApi, you can use the more specialized one - otherwise youll need to provide a concrete url to 'EnableLoopbackSelftrigger' or use 'EnableInternalSelftrigger' (non-http-based) instead.");
 #endif
-     }
+    }
 
+    private static string _RetriggerUrlAsDetected = null;
     private string GetRetriggerUrl() {
+
+      if(_RetriggerUrlAsDetected != null) {
+        return _RetriggerUrlAsDetected;
+      }
+
+      if (_StartedImmediatelyOverThisUrl != null) {
+        _RetriggerUrlAsDetected = _StartedImmediatelyOverThisUrl;
+        return _StartedImmediatelyOverThisUrl;
+      }
+
       string currentRequestUrl = this.TryGetCurrentRequestUrl();
 
       if (
-        !string.IsNullOrWhiteSpace(currentRequestUrl) && 
-        currentRequestUrl.EndsWith("go",StringComparison.CurrentCultureIgnoreCase)
+        !string.IsNullOrWhiteSpace(currentRequestUrl) &&
+        currentRequestUrl.EndsWith("go", StringComparison.CurrentCultureIgnoreCase)
       ) {
+        _RetriggerUrlAsDetected = currentRequestUrl;
         //only in this case the url can be used for self-triggering...
         return currentRequestUrl;
-      } 
-      return null; 
+      }
 
+
+      return null;
     }
+
+    private static System.Net.Http.HttpClient _Http = new System.Net.Http.HttpClient() {
+      Timeout = TimeSpan.FromSeconds(5)
+    };
 
     protected void SendSelftriggerHttpCall(string url) {
       try {
-        using (var client = new System.Net.Http.HttpClient()) {
-          client.Timeout = TimeSpan.FromSeconds(5);
-          client.PostAsync(
-            url, 
-            new System.Net.Http.StringContent("{ }",
-            System.Text.Encoding.UTF8,
-            "application/json")
-          ).GetAwaiter().GetResult();
+        //using (var client = new System.Net.Http.HttpClient()) {
+        //  client.Timeout = TimeSpan.FromSeconds(5);
+        //  client.PostAsync(
+        //    url, 
+        //    new System.Net.Http.StringContent("{ }",
+        //    System.Text.Encoding.UTF8,
+        //    "application/json")
+        //  ).GetAwaiter().GetResult();
+        //}
+
+        HttpStatusCode status = _Http.PostAsync(
+          url,
+          new System.Net.Http.StringContent("{ }",
+          System.Text.Encoding.UTF8,
+          "application/json")
+        ).GetAwaiter().GetResult().StatusCode;
+
+        if (status != HttpStatusCode.OK) {
+          throw new ApplicationException($"Received non-success http status code {status}");
         }
+
       }
       catch (Exception ex) {
-        //InsLogger.LogWarning(ex);
+        DevLogger.LogWarning(ex.Wrap(75197, $"{nameof(SendSelftriggerHttpCall)} failed: {ex.Message} (will now invoke 'go' internally!)"));
+
+        using (ExecutionContext.SuppressFlow()) {
+          Task.Run(() => this.Go());
+        }
+
       }
     }
 

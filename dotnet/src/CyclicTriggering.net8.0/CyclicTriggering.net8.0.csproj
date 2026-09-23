@@ -27,11 +27,16 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="SmartStandards.CyclicTriggering.AspNetCore" />
     <!-- ADDITIONAL ASSEMBLY-ATTRIBUTES -->
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>SourceContext</_Parameter1>
       <_Parameter2>SmartStandards.CyclicTriggering</_Parameter2>
     </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Include="..\CyclicTriggering.net10.0\SmartStandards.Logging.cs" Link="SmartStandards.Logging.cs" />
   </ItemGroup>
 
   <!-- BUILD -->

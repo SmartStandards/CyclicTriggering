@@ -1,4 +1,5 @@
-﻿using Microsoft.AspNetCore.Authorization;
+﻿using Logging.SmartStandards.CopyForCyclicTriggering;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.DataProtection.KeyManagement.Internal;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.DependencyInjection;
@@ -97,7 +98,11 @@ namespace CyclicTriggering {
 
     internal void HandleSpecialTrigger(AspSpecialTrigger specialTrigger) {
       if(specialTrigger == AspSpecialTrigger.OnApplicationReady) {
+        DevLogger.LogTrace(2096709435903705731L, 75101, $"{nameof(CyclicTriggeringService)} got trigger 'OnApplicationReady'.");
         _ApplicationIsReady = true;
+      }
+      if (specialTrigger == AspSpecialTrigger.OnApplicationStopping) {
+        DevLogger.LogTrace(2096709435903705732L, 75102, $"{nameof(CyclicTriggeringService)}  got trigger 'OnApplicationStopping'.");
       }
       base.Go((int)specialTrigger);
     }

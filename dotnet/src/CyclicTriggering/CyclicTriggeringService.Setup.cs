@@ -1,4 +1,5 @@
-﻿using System;
+﻿using Logging.SmartStandards.CopyForCyclicTriggering;
+using System;
 using System.Collections.Generic;
 using System.Diagnostics;
 using System.Reflection;
@@ -118,11 +119,14 @@ namespace CyclicTriggering {
     ///  but you'll need to know your own public url of the service to be able to set this parameter correctly (not easy under webservers like IIS). 
     /// </param>
     public void EnableLoopbackSelftrigger(int retriggerIntervalSec = 10, string startSelfInitiatedOverThisUrl = null) {
+    
       if (_LoopbackSelftriggerEnabled) {
         throw new InvalidOperationException(nameof(EnableLoopbackSelftrigger) + " was already called!");
       }
+
       _LoopbackSelftriggerEnabled = true;
       _StartedImmediatelyOverThisUrl = startSelfInitiatedOverThisUrl;
+
       if (retriggerIntervalSec < 2) {
         retriggerIntervalSec = 1;
       }
@@ -141,33 +145,52 @@ namespace CyclicTriggering {
 
           //were sill not part of a regular incomming 'go'-request!!!
           if (retriggerUrl == null) {
+            DevLogger.LogWarning(2096709435903705834L, 75110, $"{nameof(CyclicTriggeringService)} cannot start because we still have no retrigger-url detected!");
             return null;
           }
 
           return new Task(() => { //the task itself
+            try {
 
-            Task.Delay((retriggerIntervalSec * 1000), ct).Wait(ct);
+              Task.Delay((retriggerIntervalSec * 1000), ct).Wait(ct);
 
-            if (!ct.IsCancellationRequested && !_CancellationToken.IsCancellationRequested) {
+              if (!ct.IsCancellationRequested && !_CancellationToken.IsCancellationRequested) {
 
-              Task.Run(() => {
-                //very important: we need to run this in a separate thread, because the current thread
-                //needs to have ended before the retriggering http-call is sent, otherwise the
-                //retriggering will not start ourself again!
-                Thread.Sleep(500);
+                Task.Run(() => {
+                  try {
 
-                if (!ct.IsCancellationRequested && !_CancellationToken.IsCancellationRequested) { 
-                  this.SendSelftriggerHttpCall(retriggerUrl);
-                }
+                    //very important: we need to run this in a separate thread, because the current thread
+                    //needs to have ended before the retriggering http-call is sent, otherwise the
+                    //retriggering will not start ourself again!
+                    Thread.Sleep(500);
 
-              });
+                    if (!ct.IsCancellationRequested && !_CancellationToken.IsCancellationRequested) { 
+                      this.SendSelftriggerHttpCall(retriggerUrl);
+                    }
+                    else {
+                      DevLogger.LogTrace(2096709435903705766L, 75198, $"{nameof(CyclicTriggeringService)} will now skip sending a loopback self-trigger (cancellation was requested)!");
+                    }
 
+                  }
+                  catch (Exception ex) {
+                    DevLogger.LogError(ex);
+                  }
+                });
+
+              }
+              else {
+                DevLogger.LogTrace(2096709435903705767L, 75198, $"{nameof(CyclicTriggeringService)} will now skip sending a loopback self-trigger (cancellation was requested)!");
+              }
+
+            }
+            catch (Exception ex) {
+              DevLogger.LogError(ex);
             }
           }, ct);
 
         },
         minWaitSeconds: retriggerIntervalSec,
-        rescheduleWhileExecting: false //we alyways wand to be executed within the request-lifecycle!
+        rescheduleWhileExecting: true //we always want to be executed within the request-lifecycle!
       );
 
       if (!string.IsNullOrWhiteSpace(startSelfInitiatedOverThisUrl)) {
@@ -206,25 +229,43 @@ namespace CyclicTriggering {
         (ct) => { //the factory
 
           return new Task(() => { //the task itself
+            try {
 
-            Task.Delay((retriggerIntervalSec * 1000), ct).Wait(ct);
+              Task.Delay((retriggerIntervalSec * 1000), ct).Wait(ct);
 
-            if (!ct.IsCancellationRequested && !_CancellationToken.IsCancellationRequested) {
+              if (!ct.IsCancellationRequested && !_CancellationToken.IsCancellationRequested) {
 
-              using (ExecutionContext.SuppressFlow()) {              
-                Task.Run(() => {
-                  //very important: we need to run this in a separate thread, because the current thread
-                  //needs to have ended before the retriggering http-call is sent, otherwise the
-                  //retriggering will not start ourself again!
-                  Thread.Sleep(500);
+                using (ExecutionContext.SuppressFlow()) {              
+                  Task.Run(() => {
+                    try {
 
-                  if (!ct.IsCancellationRequested && !_CancellationToken.IsCancellationRequested) {
-                    this.Go();
-                  }
+                      //very important: we need to run this in a separate thread, because the current thread
+                      //needs to have ended before the retriggering http-call is sent, otherwise the
+                      //retriggering will not start ourself again!
+                      Thread.Sleep(500);
 
-                });
+                      if (!ct.IsCancellationRequested && !_CancellationToken.IsCancellationRequested) {
+                        this.Go();
+                      }
+                      else {
+                        DevLogger.LogTrace(2096709435903705756L, 75198, $"{nameof(CyclicTriggeringService)} will now skip sending a internal self-trigger (cancellation was requested)!");
+                      }
+
+                    }
+                    catch (Exception ex) {
+                      DevLogger.LogError(ex);
+                    }
+                  });
+                }
+
+              }
+              else {
+                DevLogger.LogTrace(2096709435903705757L, 75198, $"{nameof(CyclicTriggeringService)} will now skip sending a internal self-trigger (cancellation was requested)!");
               }
 
+            }
+            catch (Exception ex) {
+              DevLogger.LogError(ex);
             }
           }, ct);
 
@@ -259,6 +300,7 @@ namespace CyclicTriggering {
           if (Target == null) {
             return "NULL-Target";
           }
+          //TODO: meistens nur eine lambda -> entweder inner call raussuchen oder gleich label bei registrierung ermöglichen
           MethodInfo mi = this.Target.GetMethodInfo();
           return $"{mi.DeclaringType.FullName}.{mi.Name}";
         }

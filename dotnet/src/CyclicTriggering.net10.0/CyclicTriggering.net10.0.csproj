@@ -27,11 +27,31 @@
   </PropertyGroup>
 
   <ItemGroup>
+    <InternalsVisibleTo Include="SmartStandards.CyclicTriggering.AspNetCore" />
     <!-- ADDITIONAL ASSEMBLY-ATTRIBUTES -->
     <AssemblyAttribute Include="System.Reflection.AssemblyMetadataAttribute">
       <_Parameter1>SourceContext</_Parameter1>
       <_Parameter2>SmartStandards.CyclicTriggering</_Parameter2>
     </AssemblyAttribute>
+  </ItemGroup>
+
+  <ItemGroup>
+    <None Update="SmartStandards.Logging.tt">
+      <Generator>TextTemplatingFileGenerator</Generator>
+      <LastGenOutput>SmartStandards.Logging.cs</LastGenOutput>
+    </None>
+  </ItemGroup>
+
+  <ItemGroup>
+    <Service Include="{508349b6-6b84-4df5-91f0-309beebad82d}" />
+  </ItemGroup>
+
+  <ItemGroup>
+    <Compile Update="SmartStandards.Logging.cs">
+      <DesignTime>True</DesignTime>
+      <AutoGen>True</AutoGen>
+      <DependentUpon>SmartStandards.Logging.tt</DependentUpon>
+    </Compile>
   </ItemGroup>
 
   <!-- BUILD -->

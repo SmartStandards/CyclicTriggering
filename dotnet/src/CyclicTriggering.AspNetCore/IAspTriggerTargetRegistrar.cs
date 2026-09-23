@@ -50,11 +50,16 @@ namespace CyclicTriggering {
   ///   A well-known asp event to be used to trigger a given target.
   /// </summary>
   public enum AspSpecialTrigger { 
+
     //None/Regular = 0,
+
     OnApplicationReady = 1,
+
     OnApplicationStopping = 2,
+
     /// <summary> DANGER!!! DONT USE THIS IF YOU ARE NOT COMPLETELY AWARE ABOUT THE RISK THAT THIS CAN CAUSE HEAVY PERFORMANCE ISSUES!</summary>
     OnEachRequest = 3
+
   }
 
 }
