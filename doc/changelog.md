@@ -12,6 +12,12 @@ This files contains a version history including all changes relevant for semanti
 
 
 
+## v 0.1.2
+released **2026-09-23**, including:
+ - Fix: loopback-trigger was stopping when received within gap betw. nbf and task-end
+
+
+
 ## v 0.1.1
 released **2026-07-08**, including:
  - Fix: SuppressFlow gehen unendlichen async-stack beim internen self-trigger
