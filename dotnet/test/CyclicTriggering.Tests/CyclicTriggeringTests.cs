@@ -42,9 +42,9 @@ namespace CyclicTriggering {
         timeLog.Add(DateTime.Now, $"Target 3 ended");
       };
 
-      triggerReceiver.AddTriggerTarget((c)=> new Task(target1), minWaitSeconds: 0, rescheduleWhileExecting: false); // X X
-      triggerReceiver.AddTriggerTarget((c) => new Task(target2), minWaitSeconds: 0, rescheduleWhileExecting: false); // X _
-      triggerReceiver.AddTriggerTarget((c) => new Task(target3), minWaitSeconds: 0, rescheduleWhileExecting: true);  // X R
+      triggerReceiver.AddTriggerTarget((c)=> new Task(target1), minWaitSeconds: 0, rescheduleWhileExecuting: false); // X X
+      triggerReceiver.AddTriggerTarget((c) => new Task(target2), minWaitSeconds: 0, rescheduleWhileExecuting: false); // X _
+      triggerReceiver.AddTriggerTarget((c) => new Task(target3), minWaitSeconds: 0, rescheduleWhileExecuting: true);  // X R
 
       DateTime trigger1Time = DateTime.Now;
       DateTime trigger1ShouldBeProcessed = trigger1Time.AddMilliseconds(100);

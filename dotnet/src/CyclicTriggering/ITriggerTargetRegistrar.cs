@@ -63,7 +63,7 @@ namespace CyclicTriggering {
     ///  even if the previous execution is already finished.
     ///  The framework recommends a best practive interval of 10-20s.
     /// </param>
-    /// <param name="rescheduleWhileExecting">
+    /// <param name="rescheduleWhileExecuting">
     ///  Controls the behavior if a trigger is received while the previous execution is still running.
     ///  If set to true, the trigger will be rescheduled to execute immediately after the current execution finishes. 
     ///  If set to false, any trigger received during an ongoing execution will be ignored and not rescheduled.
@@ -74,7 +74,7 @@ namespace CyclicTriggering {
     ///  parameter based on the exception and the number of times this exception has already occoured.
     /// </param>
     void AddTriggerTarget(
-      Func<CancellationToken, Task> taskFactory, int minWaitSeconds = 5, bool rescheduleWhileExecting = true,
+      Func<CancellationToken, Task> taskFactory, int minWaitSeconds = 5, bool rescheduleWhileExecuting = true,
       OnExceptionOccoured onExceptionOccoured = null
     );
 
