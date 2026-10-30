@@ -12,6 +12,12 @@ This files contains a version history including all changes relevant for semanti
 
 
 
+## v 0.1.3
+released **2026-10-30**, including:
+ - Bumpred UJMW to 5.7
+
+
+
 ## v 0.1.2
 released **2026-09-23**, including:
  - Fix: loopback-trigger was stopping when received within gap betw. nbf and task-end
